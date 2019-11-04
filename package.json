@@ -11,5 +11,10 @@
     "url": "https://gitlab.zgtools.net/tatianae/identity-blockchain-app.git"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.4",
+    "uport-credentials": "^1.2.3",
+    "uport-transports": "^0.2.6"
+  }
 }
