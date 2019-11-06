@@ -1,78 +1,85 @@
-const { Credentials }  = require("uport-credentials")
-const jwtDecode = require('jwt-decode');
 const express = require('express')
-// issue attestation
-// in an express application
-const { transport } = require("uport-transports")
+const ngrok = require('ngrok')
+const bodyParser = require('body-parser')
+const { Credentials }  = require("uport-credentials")
+const decodeJWT = require('did-jwt').decodeJWT
+const transports = require('uport-transports').transport
 const message = require('uport-transports').message.util
-const config = require('./config')
-const user = require('./user')
-const appInfo = require('./user')
 
-// init creds
-const credentials = new Credentials({
-    appName: 'Fillow',
-    did: 'did:ethr:0x63e3c1efadab1551acc10db6bd09e3f92f146cd8',
-    privateKey: 'ce2686959d7bdeec36bf7adeb499b569b5da395863f2559d4a89d3f98e681ef3'
-  })
+const htmlTemplate = (qrImageUri, mobileUrl) => `<div><img src="${qrImageUri}" /></div><div><a href="${mobileUrl}">Click here if on mobile</a></div>`
+const Time30Days = () => Math.floor(new Date().getTime() / 1000) + 30 * 24 * 60 * 60
+let endpoint = ''
+const messageLogger = (message, title) => {
+  const wrapTitle = title ? ` \n ${title} \n ${'-'.repeat(60)}` : ''
+  const wrapMessage = `\n ${'-'.repeat(60)} ${wrapTitle} \n`
+  console.log(wrapMessage)
+  console.log(message)
+}
 
 const app = express();
-const port = 3000
+app.use(bodyParser.json({ type: '*/*' }))
 
-// path to reload
-// important should end with "/" if index.js
-var path = __dirname
 
-app.get("/health", (req, res) => {
-  res.send("200 ok");
+const credentials = new Credentials({
+  did: "did:ethr:0xc1050a01fadbbc82353d6787ba489622edfe63b6",
+  privateKey: "774d4c1cf796f7911c54ce1be9da2d743de4cd99f121999ecf4c29b733063a88"
 })
 
+// Fillow creds
+// const credentials = new Credentials({
+//   did: 'did:ethr:0x63e3c1efadab1551acc10db6bd09e3f92f146cd8',
+//   privateKey: 'ce2686959d7bdeec36bf7adeb499b569b5da395863f2559d4a89d3f98e681ef3'
+// })
 
-// create disclosure request
-// in an express application
-app.get("/", (req, res) => {
-  console.log(credentials);
+/**
+ *  First creates a disclosure request to get the DID (id) of a user. Also request push notification permission so
+ *  a push can be sent as soon as a response from this request is received. The DID is used to create the attestation
+ *  below. And a pushToken is used to push that attestation to a user.
+ */
+app.get('/', (req, res) => {
   credentials.createDisclosureRequest({
     requested: ['name'],
     notifications: true,
-    callbackUrl: 'http://ac2d14fa.ngrok.io/callback'
-  })
-  .catch(err => console.log({meth: "createDisclosureRequest", err}))
-  .then(requestToken => {
-    console.log('request token' , requestToken)
-    console.log('decoded token', jwtDecode(requestToken))
+    callbackUrl: 'http://ac2d14fa.ngrok.io' + '/callback'
+  }).then(requestToken => {
     const uri = message.paramsToQueryString(message.messageToURI(requestToken), {callback_type: 'post'})
-    const qr =  transport.ui.getImageDataURI(uri)
-    res.send(`<div><img src="${qr}"/></div>`);
+    const qr =  transports.ui.getImageDataURI(uri)
+    res.send(htmlTemplate(qr, uri))
   })
-  .catch(err => console.log({meth: "requestToken", err}))
 })
 
-
-app.post("/callback", (req, res) => {
-  console.log("I AM HERE IN CALLBACK")
+/**
+ *  This function is called as the callback from the request above. We the get the DID here and use it to create
+ *  an attestation. We also use the push token and public encryption key share in the respone to create a push
+ *  transport so that we send the attestion to the user.
+ */
+app.post('/callback', (req, res) => {
+  console.log("HERE IN THE CALLBACK")
   const jwt = req.body.access_token
+  console.log('jwt token:' , jwt)
   credentials.authenticateDisclosureResponse(jwt).then(creds => {
     const did = creds.did
     const pushToken = creds.pushToken
     const pubEncKey = creds.boxPub
-    const push = transport.push.send(pushToken, pubEncKey)
+    const push = transports.push.send(pushToken, pubEncKey)
     credentials.createVerification({
       sub: did,
       exp: Time30Days(),
-      claim: {
-        "My Title" : {
-          "KeyOne" : "ValueOne",
-          "KeyTwo" : "Value2",
-          "Last Key" : "Last Value"
-        }
-      }
+      claim: {'My Title' : {'KeyOne' : 'ValueOne', 'KeyTwo' : 'Value2', 'Last Key' : 'Last Value'} }
       // Note, the above is a complex claim. Also supported are simple claims:
-      // claim: {"Key" : "Value"}
+      // claim: {'Key' : 'Value'}
     }).then(att => {
+      messageLogger(att, 'Encoded Attestation Sent to User (Signed JWT)')
+      messageLogger(decodeJWT(att), 'Decoded Attestation Payload of Above')
       return push(att)
+    }).then(res => {
+      messageLogger('Push notification with attestation sent, will recieve on client in a moment')
+      ngrok.disconnect()
     })
   })
 })
 
-app.listen(port, 'localhost', () => console.log(`app listening on port ${port}`));
+const server = app.listen(3000, () => {
+  console.log('running on port:', '3000')
+  endpoint = 'http://ac2d14fa.ngrok.io'
+})

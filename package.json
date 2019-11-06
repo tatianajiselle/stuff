@@ -15,6 +15,7 @@
   "dependencies": {
     "express": "^4.16.4",
     "jwt-decode": "^2.2.0",
+    "ngrok": "^3.1.1",
     "uport-credentials": "^1.2.3",
     "uport-transports": "^0.2.6"
   }
