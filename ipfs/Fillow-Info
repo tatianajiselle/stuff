@@ -1,0 +1,21 @@
+{
+  "iat": 1555854173,
+  "sub": "did:ethr:0xc1050a01fadbbc82353d6787ba489622edfe63b6",
+  "claim": {
+    "name": "Zillow Identity things.",
+    "profileImage": {
+      "/": "/ipfs/QmYaAaaia9wmbGzJAwHztgj4KapiXWZHthVqNsy2wopi1L"
+    },
+    "bannerImage": {
+      "/": "/ipfs/QmURxiMoW6FKM9hnivetTtoV8K6QaFPDbhE6RBRC2hzSWn"
+    },
+    "url": "zillow.com"
+  },
+  "iss": "did:ethr:0xc1050a01fadbbc82353d6787ba489622edfe63b6"
+}
+
+encoded object:
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE1NTU4NTQxNzMsInN1YiI6ImRpZDpldGhyOjB4YzEwNTBhMDFmYWRiYmM4MjM1M2Q2Nzg3YmE0ODk2MjJlZGZlNjNiNiIsImNsYWltIjp7Im5hbWUiOiJaaWxsb3cgSWRlbnRpdHkgdGhpbmdzLiIsInByb2ZpbGVJbWFnZSI6eyIvIjoiL2lwZnMvUW1ZYUFhYWlhOXdtYkd6SkF3SHp0Z2o0S2FwaVhXWkh0aFZxTnN5MndvcGkxTCJ9LCJiYW5uZXJJbWFnZSI6eyIvIjoiL2lwZnMvUW1VUnhpTW9XNkZLTTlobml2ZXRUdG9WOEs2UWFGUERiaEU2UkJSQzJoelNXbiJ9LCJ1cmwiOiJ6aWxsb3cuY29tIn0sImlzcyI6ImRpZDpldGhyOjB4YzEwNTBhMDFmYWRiYmM4MjM1M2Q2Nzg3YmE0ODk2MjJlZGZlNjNiNiJ9.qcr9tWOJPfLDWBI1PsRdPjo8x0lgG-5q3RXwUzpwq9I
+
+fillow ipfs:
+/ipfs/QmNV9Xn18SCp48sbXGD7MoKmPRbQRgninkQeL9ZwJQYLP2

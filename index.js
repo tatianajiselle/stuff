@@ -16,31 +16,28 @@ const messageLogger = (message, title) => {
   console.log(message)
 }
 
+const port = 3000
 const app = express();
 app.use(bodyParser.json({ type: '*/*' }))
 
 
 const credentials = new Credentials({
+  network: 'ropsten',
   did: "did:ethr:0xc1050a01fadbbc82353d6787ba489622edfe63b6",
   privateKey: "774d4c1cf796f7911c54ce1be9da2d743de4cd99f121999ecf4c29b733063a88"
 })
-
-// Fillow creds
-// const credentials = new Credentials({
-//   did: 'did:ethr:0x63e3c1efadab1551acc10db6bd09e3f92f146cd8',
-//   privateKey: 'ce2686959d7bdeec36bf7adeb499b569b5da395863f2559d4a89d3f98e681ef3'
-// })
 
 /**
  *  First creates a disclosure request to get the DID (id) of a user. Also request push notification permission so
  *  a push can be sent as soon as a response from this request is received. The DID is used to create the attestation
  *  below. And a pushToken is used to push that attestation to a user.
  */
-app.get('/', (req, res) => {
+app.get('/fillow', (req, res) => {
   credentials.createDisclosureRequest({
-    requested: ['name'],
+    requested: ['name', 'email', 'country', 'phone'],
     notifications: true,
-    callbackUrl: 'http://ac2d14fa.ngrok.io' + '/callback'
+    callbackUrl: 'https://5bb54e5e.ngrok.io' + '/fillow-callback',
+    vc: '/ipfs/QmNV9Xn18SCp48sbXGD7MoKmPRbQRgninkQeL9ZwJQYLP2'
   }).then(requestToken => {
     const uri = message.paramsToQueryString(message.messageToURI(requestToken), {callback_type: 'post'})
     const qr =  transports.ui.getImageDataURI(uri)
@@ -53,10 +50,11 @@ app.get('/', (req, res) => {
  *  an attestation. We also use the push token and public encryption key share in the respone to create a push
  *  transport so that we send the attestion to the user.
  */
-app.post('/callback', (req, res) => {
+app.post('/fillow-callback', (req, res) => {
   console.log("HERE IN THE CALLBACK")
   const jwt = req.body.access_token
-  console.log('jwt token:' , jwt)
+  // console.log('jwt token:' , jwt)
+  console.log(req.body)
   credentials.authenticateDisclosureResponse(jwt).then(creds => {
     const did = creds.did
     const pushToken = creds.pushToken
@@ -65,7 +63,7 @@ app.post('/callback', (req, res) => {
     credentials.createVerification({
       sub: did,
       exp: Time30Days(),
-      claim: {'My Title' : {'KeyOne' : 'ValueOne', 'KeyTwo' : 'Value2', 'Last Key' : 'Last Value'} }
+      claim: {'Zillow Id verification' : {'Name' : creds.name, 'Can post listing' : 'yes', 'Nickname' : 'Fillow'} }
       // Note, the above is a complex claim. Also supported are simple claims:
       // claim: {'Key' : 'Value'}
     }).then(att => {
@@ -79,7 +77,62 @@ app.post('/callback', (req, res) => {
   })
 })
 
-const server = app.listen(3000, () => {
-  console.log('running on port:', '3000')
-  endpoint = 'http://ac2d14fa.ngrok.io'
+
+/**
+ *  First creates a disclosure request to get the DID (id) of a user. Also request push notification permission so
+ *  a push can be sent as soon as a response from this request is received. The DID is used to create the attestation
+ *  below. And a pushToken is used to push that attestation to a user.
+ */
+app.get('/fonfido', (req, res) => {
+  credentials.createDisclosureRequest({
+    requested: ['name', 'email', 'country', 'phone'],
+    notifications: true,
+    callbackUrl: 'https://5bb54e5e.ngrok.io' + '/callback',
+    accountType: "none",
+    vc: '/ipfs/QmWb3XmxwywQgQy4uzMvSU6V795jnogY7QELDYvWn8z22a'
+  }).then(requestToken => {
+    const uri = message.paramsToQueryString(message.messageToURI(requestToken), {callback_type: 'post'})
+    const qr =  transports.ui.getImageDataURI(uri)
+    res.send(htmlTemplate(qr, uri))
+  })
+})
+
+/**
+ *  This function is called as the callback from the request above. We the get the DID here and use it to create
+ *  an attestation. We also use the push token and public encryption key share in the respone to create a push
+ *  transport so that we send the attestion to the user.
+ */
+app.post('/fonfido-callback', (req, res) => {
+  console.log("HERE IN THE CALLBACK")
+  const jwt = req.body.access_token
+  // console.log('jwt token:' , jwt)
+  console.log(req.body)
+  credentials.authenticateDisclosureResponse(jwt).then(creds => {
+    const did = creds.did
+    const pushToken = creds.pushToken
+    const pubEncKey = creds.boxPub
+    const push = transports.push.send(pushToken, pubEncKey)
+    credentials.createVerification({
+      sub: did,
+      exp: Time30Days(),
+      claim: {'Zillow Id verification' : {'Name' : creds.name, 'Can post listing' : 'yes', 'Nickname' : 'Fillow'} }
+      // Note, the above is a complex claim. Also supported are simple claims:
+      // claim: {'Key' : 'Value'}
+    }).then(att => {
+      messageLogger(att, 'Encoded Attestation Sent to User (Signed JWT)')
+      messageLogger(decodeJWT(att), 'Decoded Attestation Payload of Above')
+      return push(att)
+    }).then(res => {
+      messageLogger('Push notification with attestation sent, will recieve on client in a moment')
+      ngrok.disconnect()
+    })
+  })
+})
+
+app.post('/fonfido-webhook', () => {
+  return 'hello onfido';
+})
+
+const server = app.listen(port, () => {
+  console.log('running on port:', port)
 })
