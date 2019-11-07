@@ -36,8 +36,8 @@ app.get('/fillow', (req, res) => {
   credentials.createDisclosureRequest({
     requested: ['name', 'email', 'country', 'phone'],
     notifications: true,
-    callbackUrl: 'https://5bb54e5e.ngrok.io' + '/fillow-callback',
-    vc: '/ipfs/QmNV9Xn18SCp48sbXGD7MoKmPRbQRgninkQeL9ZwJQYLP2'
+    callbackUrl: 'http://c3fd8ee1.ngrok.io' + '/fillow-callback',
+    vc: ['/ipfs/QmNV9Xn18SCp48sbXGD7MoKmPRbQRgninkQeL9ZwJQYLP2']
   }).then(requestToken => {
     const uri = message.paramsToQueryString(message.messageToURI(requestToken), {callback_type: 'post'})
     const qr =  transports.ui.getImageDataURI(uri)
@@ -53,7 +53,6 @@ app.get('/fillow', (req, res) => {
 app.post('/fillow-callback', (req, res) => {
   console.log("HERE IN THE CALLBACK")
   const jwt = req.body.access_token
-  // console.log('jwt token:' , jwt)
   console.log(req.body)
   credentials.authenticateDisclosureResponse(jwt).then(creds => {
     const did = creds.did
@@ -72,7 +71,6 @@ app.post('/fillow-callback', (req, res) => {
       return push(att)
     }).then(res => {
       messageLogger('Push notification with attestation sent, will recieve on client in a moment')
-      ngrok.disconnect()
     })
   })
 })
@@ -123,8 +121,6 @@ app.post('/fonfido-callback', (req, res) => {
       messageLogger(decodeJWT(att), 'Decoded Attestation Payload of Above')
       return push(att)
     }).then(res => {
-      messageLogger('Push notification with attestation sent, will recieve on client in a moment')
-      ngrok.disconnect()
     })
   })
 })
